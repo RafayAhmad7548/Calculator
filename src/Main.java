@@ -5,10 +5,12 @@ public class Main{
 
     JFrame frame;
     JTextField screen;
+    ButtonPanel buttonPanel;
 
     public Main(){
         frame = new JFrame();
         screen = new JTextField();
+        buttonPanel = new ButtonPanel(screen);
 
         screen.setPreferredSize(new Dimension(550, 100));
         screen.setEditable(false);
@@ -22,9 +24,10 @@ public class Main{
         
         frame.add(Box.createRigidArea(new Dimension(600, 10)));
         frame.add(screen);
-        frame.add(new ButtonPanel(screen));
+        frame.add(buttonPanel);
         
         frame.setVisible(true);
+        buttonPanel.requestFocus();
     }
 
     public static void main(String[] args){

@@ -1,7 +1,8 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 
-public class ButtonPanel extends JPanel{
+public class ButtonPanel extends JPanel implements KeyListener{
 
     Button[] buttons = new Button[20];
     static String expression = "";
@@ -11,6 +12,7 @@ public class ButtonPanel extends JPanel{
         this.screen = screen;
         this.setPreferredSize(new Dimension(550, 500));
         this.setLayout(new GridLayout(5, 4, 10, 10));
+        this.addKeyListener(this);
 
         for(int i=0;i<=9;i++) buttons[i] = new Button(Integer.toString(i));
         
@@ -114,7 +116,7 @@ public class ButtonPanel extends JPanel{
             
         });
         buttons[14].addActionListener((e) -> {  // DEL
-            expression = expression.substring(0, expression.length()-1);
+            if(expression.length()>0) expression = expression.substring(0, expression.length()-1);
             screen.setText(expression);
         });
         buttons[15].addActionListener((e) -> {  // AC
@@ -128,10 +130,14 @@ public class ButtonPanel extends JPanel{
             
         });
         buttons[17].addActionListener((e) -> {  // =
-            syntaxCheck(expression);
-            expression = resolveOperator(expression);
-            expression = solveEquation(expression);
-            screen.setText(expression);
+            if(!syntaxCheck(expression)){
+                screen.setText("Syntax Error");
+                expression = "";
+            }
+            else{
+                expression = solveEquation(expression);
+                screen.setText(expression);
+            }
         });
         buttons[18].addActionListener((e) -> {  // (
             expression += "(";
@@ -144,19 +150,18 @@ public class ButtonPanel extends JPanel{
 
     }
 
-    public void syntaxCheck(String expression){
+    public boolean syntaxCheck(String expression){
+        if(expression.length() == 1) return false;
         // first last check
-        if(expression.charAt(0) == '*' || expression.charAt(0) == '/' || expression.charAt(0) == ')'){
-            expression = "Syntax Error";
-            screen.setText(expression);
-        }
+        if(
+            expression.charAt(0) == '*' || expression.charAt(0) == '/' || expression.charAt(0) == ')' ||
+            expression.charAt(expression.length()-1) == '/' || expression.charAt(expression.length()-1) == '*' ||
+            expression.charAt(expression.length()-1) == '+' || expression.charAt(expression.length()-1) == '-'
+        ) return false;
         // check for two operators in a row
         for(int i=0;i<expression.length()-1;i++){
             if(expression.charAt(i) == '*' || expression.charAt(i) == '/'){
-                if(expression.charAt(i+1) == '*' || expression.charAt(i+1) == '/'){
-                    expression = "Syntax Error";
-                    screen.setText(expression);
-                }
+                if(expression.charAt(i+1) == '*' || expression.charAt(i+1) == '/') return false;
             }
         }
         // check brackets
@@ -166,43 +171,51 @@ public class ButtonPanel extends JPanel{
             if(expression.charAt(i) == '(') open++;
             else if(expression.charAt(i) == ')') close++;
         }
-        if(open != close){
-            expression = "Syntax Error";
-            screen.setText(expression);
-        }
+        if(open != close) return false;
+        
+        return true;
     }
 
     public String resolveOperator(String expression){
         expression = expression.replaceAll("\\+" + "-", "-").replaceAll("-" + "\\+", "-").replaceAll("--", "\\+").replaceAll("\\+" + "\\+", "+");
+        if(expression.charAt(0) == '+') expression = expression.substring(1, expression.length());
         return expression;
     }
 
     public String solveEquation(String expression){
+        expression = resolveOperator(expression);
+        if(expression.contains("("))
         expression = solveBrackets(expression);
+        while(expression.contains("+") || expression.contains("-") || expression.contains("*") || expression.contains("/")){
+            expression = calculate(expression);
+        }
         return expression;
     }
 
     public String solveBrackets(String expression){
-        int bracketStart = 0;
-        int bracketEnd = 0;
-        String bracket;
-        for(int i=0;i<expression.length();i++){
-            if(expression.charAt(i) == '(') bracketStart = i;
-            else if(expression.charAt(i) == ')'){
-                bracketEnd = i;
-                break;
+        while(expression.contains("(")){
+            int bracketStart = 0;
+            int bracketEnd = 0;
+            String bracket, temp;
+            for(int i=0;i<expression.length();i++){
+                if(expression.charAt(i) == '(') bracketStart = i;
+                else if(expression.charAt(i) == ')'){
+                    bracketEnd = i;
+                    break;
+                }
             }
+            bracket = expression.substring(bracketStart+1, bracketEnd);
+            temp = calculate(bracket);
+            expression = expression.replace(expression.substring(bracketStart, bracketEnd+1), temp);
         }
-        bracket = expression.substring(bracketStart+1, bracketEnd);
-        expression = expression.replace("\\(" + bracket + "\\)", calculate(bracket));
         return expression;
     }
 
     public String calculate(String expression){
+
         
         int indexOp;
         char operator = ' ';
-
         indexOp = expression.indexOf('*');
         if(indexOp == -1) indexOp = expression.indexOf('/');
         if(indexOp == -1) indexOp = expression.indexOf('+');
@@ -214,8 +227,8 @@ public class ButtonPanel extends JPanel{
         else if(expression.charAt(indexOp) == '-') operator = '-';
         
 
-        while(indexOp!=-1){
-
+        do{
+            
             int start = 0, end = 0;
             for(int i=indexOp-1;i>=0;i--){
                 if(expression.charAt(i) == '*' || expression.charAt(i) == '/' || expression.charAt(i) == '+' || expression.charAt(i) == '-'){
@@ -231,34 +244,142 @@ public class ButtonPanel extends JPanel{
                 }
                 else end = expression.length();
             }
-
+            
+            if(expression.charAt(0) == '-' && start == 1) start = 0;
+            
             if(operator == '*'){
-               expression = expression.replaceFirst(expression.substring(start, indexOp) + "\\*" + expression.substring(indexOp+1, end), String.valueOf(Double.valueOf(expression.substring(start, indexOp)) * Double.valueOf(expression.substring(indexOp+1, end)))); 
+                expression = expression.replaceFirst(expression.substring(start, indexOp) + "\\*" + expression.substring(indexOp+1, end), String.valueOf(Double.valueOf(expression.substring(start, indexOp)) * Double.valueOf(expression.substring(indexOp+1, end)))); 
             }
             else if(operator == '/'){
                 expression = expression.replaceFirst(expression.substring(start, end), String.valueOf(Double.valueOf(expression.substring(start, indexOp)) / Double.valueOf(expression.substring(indexOp+1, end)))); 
             }
             else if(operator == '+'){
-               expression = expression.replaceFirst(expression.substring(start, indexOp) + "\\+" + expression.substring(indexOp+1, end), String.valueOf(Double.valueOf(expression.substring(start, indexOp)) + Double.valueOf(expression.substring(indexOp+1, end)))); 
+                expression = expression.replaceFirst(expression.substring(start, indexOp) + "\\+" + expression.substring(indexOp+1, end), String.valueOf(Double.valueOf(expression.substring(start, indexOp)) + Double.valueOf(expression.substring(indexOp+1, end)))); 
             }
             else if(operator == '-'){
                 expression = expression.replaceFirst(expression.substring(start, end), String.valueOf(Double.valueOf(expression.substring(start, indexOp)) - Double.valueOf(expression.substring(indexOp+1, end))));
             }
-
+            
             indexOp = expression.indexOf('*');
             if(indexOp == -1) indexOp = expression.indexOf('/');
             if(indexOp == -1) indexOp = expression.indexOf('+');
             if(indexOp == -1) indexOp = expression.indexOf('-');
-
+            if(indexOp == 0) indexOp = expression.substring(1, expression.length()).indexOf('-');
+        
             if(indexOp!=-1){
                 if(expression.charAt(indexOp) == '*') operator = '*';
                 else if(expression.charAt(indexOp) == '/') operator = '/';
                 else if(expression.charAt(indexOp) == '+') operator = '+';
                 else if(expression.charAt(indexOp) == '-') operator = '-';
             }
+            
+        }while(indexOp!=-1);
+        
+        if(Double.valueOf(expression) - Integer.valueOf(expression.substring(0, expression.indexOf('.'))) == 0) expression = String.valueOf(Integer.valueOf(expression.substring(0, expression.indexOf('.'))));
+        
+        return expression;
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e){
+        System.out.println(e.getKeyCode());
+        switch(e.getKeyCode()){
+            case KeyEvent.VK_NUMPAD0:
+                expression += "0";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_NUMPAD1:
+                expression += "1";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_NUMPAD2:
+                expression += "2";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_NUMPAD3:
+                expression += "3";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_NUMPAD4:
+                expression += "4";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_NUMPAD5:
+                expression += "5";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_NUMPAD6:
+                expression += "6";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_NUMPAD7:
+                expression += "7";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_NUMPAD8:
+                expression += "8";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_NUMPAD9:
+                expression += "9";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_ADD:
+                expression += "+";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_SUBTRACT:
+                expression += "-";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_MULTIPLY:
+                expression += "*";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_DIVIDE:
+                expression += "/";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_DECIMAL:
+                expression += ".";
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_ENTER:
+                if(!syntaxCheck(expression)){
+                    screen.setText("Syntax Error");
+                    expression = "";
+                }
+                else{
+                    expression = solveEquation(expression);
+                    screen.setText(expression);
+                }
+            break;
+            case KeyEvent.VK_BACK_SPACE:
+                if(expression.length()>0) expression = expression.substring(0, expression.length()-1);
+                screen.setText(expression);
+            break;
+            case KeyEvent.VK_9:
+                if(e.isShiftDown()){
+                    expression += "(";
+                    screen.setText(expression);
+                }
+            break;
+            case KeyEvent.VK_0:
+                if(e.isShiftDown()){
+                    expression += ")";
+                    screen.setText(expression);
+                }
+            break;
         }
 
-        return expression;
+
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e){
+    }
+    @Override
+    public void keyTyped(KeyEvent e){
     }
 
     // AC DEL ( ) 
