@@ -193,7 +193,7 @@ public class ButtonPanel extends JPanel implements KeyListener{
     }
     
     public String resolveOperator(String expression){
-        expression = expression.replaceAll("\\+" + "-", "-").replaceAll("-" + "\\+", "-").replaceAll("--", "\\+").replaceAll("\\+" + "\\+", "+");
+        expression = expression.replaceAll("-" + "\\+", "\\+" + "-").replaceAll("--", "\\+").replaceAll("\\+" + "\\+", "+").replaceAll("-", "\\+-");
         if(expression.charAt(0) == '+') expression = expression.substring(1, expression.length());
         return expression;
     }
@@ -226,15 +226,11 @@ public class ButtonPanel extends JPanel implements KeyListener{
         indexOp = expression.indexOf('*');
         if(indexOp == -1) indexOp = expression.indexOf('/');
         if(indexOp == -1) indexOp = expression.indexOf('+');
-        if(indexOp == -1) indexOp = expression.indexOf('-');
-        if(indexOp == 0) indexOp = expression.substring(1, expression.length()).indexOf('-');
-
 
         if(indexOp!=-1){
             if(expression.charAt(indexOp) == '*') operator = '*';
             else if(expression.charAt(indexOp) == '/') operator = '/';
             else if(expression.charAt(indexOp) == '+') operator = '+';
-            else if(expression.charAt(indexOp) == '-') operator = '-';
         }
         
 
@@ -242,14 +238,14 @@ public class ButtonPanel extends JPanel implements KeyListener{
             
             int start = 0, end = 0;
             for(int i=indexOp-1;i>=0;i--){
-                if(expression.charAt(i) == '*' || expression.charAt(i) == '/' || expression.charAt(i) == '+' || expression.charAt(i) == '-'){
+                if(expression.charAt(i) == '*' || expression.charAt(i) == '/' || expression.charAt(i) == '+'){
                     start = i+1;
                     break;
                 }
                 else start = 0;
             }
             for(int i=indexOp+1;i<expression.length();i++){
-                if((expression.charAt(i) == '*' || expression.charAt(i) == '/' || expression.charAt(i) == '+' || expression.charAt(i) == '-') && i!=indexOp+1){
+                if((expression.charAt(i) == '*' || expression.charAt(i) == '/' || expression.charAt(i) == '+') && i!=indexOp+1){
                     end = i;
                     break;
                 }
@@ -267,21 +263,15 @@ public class ButtonPanel extends JPanel implements KeyListener{
             else if(operator == '+'){
                 expression = expression.replaceFirst(expression.substring(start, indexOp) + "\\+" + expression.substring(indexOp+1, end), String.valueOf(Double.valueOf(expression.substring(start, indexOp)) + Double.valueOf(expression.substring(indexOp+1, end)))); 
             }
-            else if(operator == '-'){
-                expression = expression.replaceFirst(expression.substring(start, end), String.valueOf(Double.valueOf(expression.substring(start, indexOp)) - Double.valueOf(expression.substring(indexOp+1, end))));
-            }
             
             indexOp = expression.indexOf('*');
             if(indexOp == -1) indexOp = expression.indexOf('/');
             if(indexOp == -1) indexOp = expression.indexOf('+');
-            if(indexOp == -1) indexOp = expression.indexOf('-');
-            if(indexOp == 0) indexOp = expression.substring(1, expression.length()).indexOf('-');
         
             if(indexOp!=-1){
                 if(expression.charAt(indexOp) == '*') operator = '*';
                 else if(expression.charAt(indexOp) == '/') operator = '/';
                 else if(expression.charAt(indexOp) == '+') operator = '+';
-                else if(expression.charAt(indexOp) == '-') operator = '-';
             }
             
         }
