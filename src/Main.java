@@ -14,7 +14,7 @@ public class Main{
         UIManager.put("Button.arc", 100);
         UIManager.put("TextComponent.arc", 100);
 
-        frame = new JFrame();
+        frame = new JFrame("Calculator");
         screen = new JTextField();
         buttonPanel = new ButtonPanel(screen);
 
